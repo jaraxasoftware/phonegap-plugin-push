@@ -8,6 +8,7 @@
     Windows uses Microsoft WNS Notifications.
 	</description>
   <license>MIT</license>
+  <repo>https://github.com/jaraxasoftware/phonegap-push-plugin.git</repo>
   <js-module src="www/push.js" name="PushNotification">
     <clobbers target="PushNotification"/>
   </js-module>
