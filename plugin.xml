@@ -73,11 +73,12 @@
     <source-file src="src/android/com/adobe/phonegap/push/BackgroundActionButtonHandler.java" target-dir="src/com/adobe/phonegap/push/"/>
   </platform>
   <platform name="browser">
+	<hook type="after_plugin_install" src="hooks/browser/createManifest.js"/>
     <js-module src="www/browser/push.js" name="BrowserPush">
       <clobbers target="PushNotification"/>
     </js-module>
     <asset src="src/browser/ServiceWorker.js" target="ServiceWorker.js"/>
-    <asset src="src/browser/manifest.json" target="manifest.json"/>
+    <!--<asset src="src/browser/manifest.json" target="manifest.json"/>-->
   </platform>
   <platform name="ios">
     <config-file target="config.xml" parent="/*">
