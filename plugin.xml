@@ -109,6 +109,7 @@
     <header-file src="src/ios/AppDelegate+notification.h"/>
     <header-file src="src/ios/PushPlugin.h"/>
     <framework src="AddressBook.framework"/>
+    <framework src="PushKit.framework"/>
     <framework src="libsqlite3.tbd"/>
     <framework src="libz.tbd"/>
     <framework src="GoogleCloudMessaging" type="podspec" spec="~> 1.2.0"/>

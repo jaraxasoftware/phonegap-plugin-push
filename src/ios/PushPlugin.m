@@ -29,6 +29,14 @@
 #import "PushPlugin.h"
 #import "GoogleCloudMessaging.h"
 #import "GGLInstanceIDHeaders.h"
+#import <PushKit/PushKit.h>
+
+@interface PushPlugin () <PKPushRegistryDelegate>
+
+@property (strong, nonatomic) PKPushRegistry *voipRegistry;
+@property (strong, nonatomic) NSData *voipToken;
+
+@end
 
 @implementation PushPlugin : CDVPlugin
 
@@ -84,7 +92,7 @@
             [weakSelf registerWithToken:registrationToken];
         } else {
             NSLog(@"Registration to GCM failed with error: %@", error.localizedDescription);
-            [weakSelf failWithMessage:self.callbackId withMsg:@"" withError:error];
+            [weakSelf failWithMessage:weakSelf.callbackId withMsg:@"" withError:error];
         }
     };
 }
@@ -215,166 +223,173 @@
         NSMutableDictionary* options = [command.arguments objectAtIndex:0];
         NSMutableDictionary* iosOptions = [options objectForKey:@"ios"];
 
-    NSArray* topics = [iosOptions objectForKey:@"topics"];
-    [self setGcmTopics:topics];
-
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 80000
-        UIUserNotificationType UserNotificationTypes = UIUserNotificationTypeNone;
-#endif
-        UIRemoteNotificationType notificationTypes = UIRemoteNotificationTypeNone;
-
-        id badgeArg = [iosOptions objectForKey:@"badge"];
-        id soundArg = [iosOptions objectForKey:@"sound"];
-        id alertArg = [iosOptions objectForKey:@"alert"];
-        id clearBadgeArg = [iosOptions objectForKey:@"clearBadge"];
-
-        if (([badgeArg isKindOfClass:[NSString class]] && [badgeArg isEqualToString:@"true"]) || [badgeArg boolValue])
-        {
-            notificationTypes |= UIRemoteNotificationTypeBadge;
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 80000
-            UserNotificationTypes |= UIUserNotificationTypeBadge;
-#endif
+        id voipPush = [iosOptions objectForKey:@"voip"];
+        if(([voipPush isKindOfClass:[NSString class]] && [voipPush isEqualToString:@"true"]) || [voipPush boolValue]) {
+            [self setupVoipPush];
         }
-
-        if (([soundArg isKindOfClass:[NSString class]] && [soundArg isEqualToString:@"true"]) || [soundArg boolValue])
-        {
-            notificationTypes |= UIRemoteNotificationTypeSound;
+        id standardPush = [iosOptions objectForKey:@"push"];
+        if(standardPush == nil || (([standardPush isKindOfClass:[NSString class]] && [standardPush isEqualToString:@"true"]) || [standardPush boolValue])) {
+            NSArray* topics = [iosOptions objectForKey:@"topics"];
+            [self setGcmTopics:topics];
+            
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 80000
-            UserNotificationTypes |= UIUserNotificationTypeSound;
+            UIUserNotificationType UserNotificationTypes = UIUserNotificationTypeNone;
 #endif
-        }
-
-        if (([alertArg isKindOfClass:[NSString class]] && [alertArg isEqualToString:@"true"]) || [alertArg boolValue])
-        {
-            notificationTypes |= UIRemoteNotificationTypeAlert;
+            UIRemoteNotificationType notificationTypes = UIRemoteNotificationTypeNone;
+            
+            id badgeArg = [iosOptions objectForKey:@"badge"];
+            id soundArg = [iosOptions objectForKey:@"sound"];
+            id alertArg = [iosOptions objectForKey:@"alert"];
+            id clearBadgeArg = [iosOptions objectForKey:@"clearBadge"];
+            
+            if (([badgeArg isKindOfClass:[NSString class]] && [badgeArg isEqualToString:@"true"]) || [badgeArg boolValue])
+            {
+                notificationTypes |= UIRemoteNotificationTypeBadge;
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 80000
-            UserNotificationTypes |= UIUserNotificationTypeAlert;
+                UserNotificationTypes |= UIUserNotificationTypeBadge;
 #endif
-        }
-
-        notificationTypes |= UIRemoteNotificationTypeNewsstandContentAvailability;
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 80000
-        UserNotificationTypes |= UIUserNotificationActivationModeBackground;
-#endif
-
-        if (clearBadgeArg == nil || ([clearBadgeArg isKindOfClass:[NSString class]] && [clearBadgeArg isEqualToString:@"false"]) || ![clearBadgeArg boolValue]) {
-            NSLog(@"PushPlugin.register: setting badge to false");
-            clearBadge = NO;
-        } else {
-            NSLog(@"PushPlugin.register: setting badge to true");
-            clearBadge = YES;
-            [[UIApplication sharedApplication] setApplicationIconBadgeNumber:0];
-        }
-        NSLog(@"PushPlugin.register: clear badge is set to %d", clearBadge);
-
-        if (notificationTypes == UIRemoteNotificationTypeNone)
-            NSLog(@"PushPlugin.register: Push notification type is set to none");
-
-        isInline = NO;
-
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 80000
-        NSLog(@"PushPlugin.register: better button setup");
-        // setup action buttons
-        NSMutableSet *categories = [[NSMutableSet alloc] init];
-        id categoryOptions = [iosOptions objectForKey:@"categories"];
-        if (categoryOptions != nil && [categoryOptions isKindOfClass:[NSDictionary class]]) {
-            for (id key in categoryOptions) {
-                NSLog(@"categories: key %@", key);
-                id category = [categoryOptions objectForKey:key];
-
-                id yesButton = [category objectForKey:@"yes"];
-                UIMutableUserNotificationAction *yesAction;
-                if (yesButton != nil && [yesButton  isKindOfClass:[NSDictionary class]]) {
-                    yesAction = [self createAction: yesButton];
-                }
-                id noButton = [category objectForKey:@"no"];
-                UIMutableUserNotificationAction *noAction;
-                if (noButton != nil && [noButton  isKindOfClass:[NSDictionary class]]) {
-                    noAction = [self createAction: noButton];
-                }
-                id maybeButton = [category objectForKey:@"maybe"];
-                UIMutableUserNotificationAction *maybeAction;
-                if (maybeButton != nil && [maybeButton  isKindOfClass:[NSDictionary class]]) {
-                    maybeAction = [self createAction: maybeButton];
-                }
-
-                // First create the category
-                UIMutableUserNotificationCategory *notificationCategory = [[UIMutableUserNotificationCategory alloc] init];
-
-                // Identifier to include in your push payload and local notification
-                notificationCategory.identifier = key;
-
-                NSMutableArray *categoryArray = [[NSMutableArray alloc] init];
-                NSMutableArray *minimalCategoryArray = [[NSMutableArray alloc] init];
-                if (yesButton != nil) {
-                    [categoryArray addObject:yesAction];
-                    [minimalCategoryArray addObject:yesAction];
-                }
-                if (noButton != nil) {
-                    [categoryArray addObject:noAction];
-                    [minimalCategoryArray addObject:noAction];
-                }
-                if (maybeButton != nil) {
-                    [categoryArray addObject:maybeAction];
-                }
-
-                // Add the actions to the category and set the action context
-                [notificationCategory setActions:categoryArray forContext:UIUserNotificationActionContextDefault];
-
-                // Set the actions to present in a minimal context
-                [notificationCategory setActions:minimalCategoryArray forContext:UIUserNotificationActionContextMinimal];
-
-                NSLog(@"Adding category %@", key);
-                [categories addObject:notificationCategory];
             }
-
-        }
-#else
-        NSLog(@"PushPlugin.register: action buttons only supported on iOS8 and above");
-#endif
-
-
+            
+            if (([soundArg isKindOfClass:[NSString class]] && [soundArg isEqualToString:@"true"]) || [soundArg boolValue])
+            {
+                notificationTypes |= UIRemoteNotificationTypeSound;
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 80000
-        if ([[UIApplication sharedApplication]respondsToSelector:@selector(registerUserNotificationSettings:)]) {
-            UIUserNotificationSettings *settings = [UIUserNotificationSettings settingsForTypes:UserNotificationTypes categories:categories];
-            [[UIApplication sharedApplication] registerUserNotificationSettings:settings];
-            [[UIApplication sharedApplication] registerForRemoteNotifications];
-        } else {
+                UserNotificationTypes |= UIUserNotificationTypeSound;
+#endif
+            }
+            
+            if (([alertArg isKindOfClass:[NSString class]] && [alertArg isEqualToString:@"true"]) || [alertArg boolValue])
+            {
+                notificationTypes |= UIRemoteNotificationTypeAlert;
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 80000
+                UserNotificationTypes |= UIUserNotificationTypeAlert;
+#endif
+            }
+            
+            notificationTypes |= UIRemoteNotificationTypeNewsstandContentAvailability;
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 80000
+            UserNotificationTypes |= UIUserNotificationActivationModeBackground;
+#endif
+            
+            if (clearBadgeArg == nil || ([clearBadgeArg isKindOfClass:[NSString class]] && [clearBadgeArg isEqualToString:@"false"]) || ![clearBadgeArg boolValue]) {
+                NSLog(@"PushPlugin.register: setting badge to false");
+                clearBadge = NO;
+            } else {
+                NSLog(@"PushPlugin.register: setting badge to true");
+                clearBadge = YES;
+                [[UIApplication sharedApplication] setApplicationIconBadgeNumber:0];
+            }
+            NSLog(@"PushPlugin.register: clear badge is set to %d", clearBadge);
+            
+            if (notificationTypes == UIRemoteNotificationTypeNone)
+            NSLog(@"PushPlugin.register: Push notification type is set to none");
+            
+            isInline = NO;
+            
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 80000
+            NSLog(@"PushPlugin.register: better button setup");
+            // setup action buttons
+            NSMutableSet *categories = [[NSMutableSet alloc] init];
+            id categoryOptions = [iosOptions objectForKey:@"categories"];
+            if (categoryOptions != nil && [categoryOptions isKindOfClass:[NSDictionary class]]) {
+                for (id key in categoryOptions) {
+                    NSLog(@"categories: key %@", key);
+                    id category = [categoryOptions objectForKey:key];
+                    
+                    id yesButton = [category objectForKey:@"yes"];
+                    UIMutableUserNotificationAction *yesAction;
+                    if (yesButton != nil && [yesButton  isKindOfClass:[NSDictionary class]]) {
+                        yesAction = [self createAction: yesButton];
+                    }
+                    id noButton = [category objectForKey:@"no"];
+                    UIMutableUserNotificationAction *noAction;
+                    if (noButton != nil && [noButton  isKindOfClass:[NSDictionary class]]) {
+                        noAction = [self createAction: noButton];
+                    }
+                    id maybeButton = [category objectForKey:@"maybe"];
+                    UIMutableUserNotificationAction *maybeAction;
+                    if (maybeButton != nil && [maybeButton  isKindOfClass:[NSDictionary class]]) {
+                        maybeAction = [self createAction: maybeButton];
+                    }
+                    
+                    // First create the category
+                    UIMutableUserNotificationCategory *notificationCategory = [[UIMutableUserNotificationCategory alloc] init];
+                    
+                    // Identifier to include in your push payload and local notification
+                    notificationCategory.identifier = key;
+                    
+                    NSMutableArray *categoryArray = [[NSMutableArray alloc] init];
+                    NSMutableArray *minimalCategoryArray = [[NSMutableArray alloc] init];
+                    if (yesButton != nil) {
+                        [categoryArray addObject:yesAction];
+                        [minimalCategoryArray addObject:yesAction];
+                    }
+                    if (noButton != nil) {
+                        [categoryArray addObject:noAction];
+                        [minimalCategoryArray addObject:noAction];
+                    }
+                    if (maybeButton != nil) {
+                        [categoryArray addObject:maybeAction];
+                    }
+                    
+                    // Add the actions to the category and set the action context
+                    [notificationCategory setActions:categoryArray forContext:UIUserNotificationActionContextDefault];
+                    
+                    // Set the actions to present in a minimal context
+                    [notificationCategory setActions:minimalCategoryArray forContext:UIUserNotificationActionContextMinimal];
+                    
+                    NSLog(@"Adding category %@", key);
+                    [categories addObject:notificationCategory];
+                }
+                
+            }
+#else
+            NSLog(@"PushPlugin.register: action buttons only supported on iOS8 and above");
+#endif
+            
+            
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 80000
+            if ([[UIApplication sharedApplication]respondsToSelector:@selector(registerUserNotificationSettings:)]) {
+                UIUserNotificationSettings *settings = [UIUserNotificationSettings settingsForTypes:UserNotificationTypes categories:categories];
+                [[UIApplication sharedApplication] registerUserNotificationSettings:settings];
+                [[UIApplication sharedApplication] registerForRemoteNotifications];
+            } else {
+                [[UIApplication sharedApplication] registerForRemoteNotificationTypes:
+                 (UIRemoteNotificationTypeBadge | UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert)];
+            }
+#else
             [[UIApplication sharedApplication] registerForRemoteNotificationTypes:
              (UIRemoteNotificationTypeBadge | UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert)];
-        }
-#else
-        [[UIApplication sharedApplication] registerForRemoteNotificationTypes:
-         (UIRemoteNotificationTypeBadge | UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert)];
 #endif
-
-        //  GCM options
-        [self setGcmSenderId: [iosOptions objectForKey:@"senderID"]];
-        NSLog(@"GCM Sender ID %@", gcmSenderId);
-        if([[self gcmSenderId] length] > 0) {
-            NSLog(@"Using GCM Notification");
-            [self setUsesGCM: YES];
-            [self initGCMRegistrationHandler];
-        } else {
-            NSLog(@"Using APNS Notification");
-            [self setUsesGCM:NO];
-        }
-        id gcmSandBoxArg = [iosOptions objectForKey:@"gcmSandbox"];
-
-        [self setGcmSandbox:@NO];
-        if ([self usesGCM] &&
-            (([gcmSandBoxArg isKindOfClass:[NSString class]] && [gcmSandBoxArg isEqualToString:@"true"]) ||
-             [gcmSandBoxArg boolValue]))
-        {
-            NSLog(@"Using GCM Sandbox");
-            [self setGcmSandbox:@YES];
-        }
-
-        if (notificationMessage) {			// if there is a pending startup notification
-            dispatch_async(dispatch_get_main_queue(), ^{
-                // delay to allow JS event handlers to be setup
-                [self performSelector:@selector(notificationReceived) withObject:nil afterDelay: 0.5];
-            });
+            
+            //  GCM options
+            [self setGcmSenderId: [iosOptions objectForKey:@"senderID"]];
+            NSLog(@"GCM Sender ID %@", gcmSenderId);
+            if([[self gcmSenderId] length] > 0) {
+                NSLog(@"Using GCM Notification");
+                [self setUsesGCM: YES];
+                [self initGCMRegistrationHandler];
+            } else {
+                NSLog(@"Using APNS Notification");
+                [self setUsesGCM:NO];
+            }
+            id gcmSandBoxArg = [iosOptions objectForKey:@"gcmSandbox"];
+            
+            [self setGcmSandbox:@NO];
+            if ([self usesGCM] &&
+                (([gcmSandBoxArg isKindOfClass:[NSString class]] && [gcmSandBoxArg isEqualToString:@"true"]) ||
+                 [gcmSandBoxArg boolValue]))
+            {
+                NSLog(@"Using GCM Sandbox");
+                [self setGcmSandbox:@YES];
+            }
+            
+            if (notificationMessage) {          // if there is a pending startup notification
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    // delay to allow JS event handlers to be setup
+                    [self performSelector:@selector(notificationReceived) withObject:nil afterDelay: 0.5];
+                });
+            }
         }
     }];
 }
@@ -565,6 +580,67 @@
         self.coldstart = NO;
         self.notificationMessage = nil;
     }
+}
+
+- (void)setupVoipPush
+{
+    self.voipRegistry = [[PKPushRegistry alloc] initWithQueue:dispatch_get_main_queue()];
+    self.voipRegistry.delegate = self;
+    self.voipRegistry.desiredPushTypes = [NSSet setWithObject:PKPushTypeVoIP];
+}
+
+- (void)pushRegistry:(PKPushRegistry *)registry didInvalidatePushTokenForType:(NSString *)type
+{
+    //unsubscribe from push notifications
+    self.voipToken = nil;
+}
+
+- (void)pushRegistry:(PKPushRegistry *)registry didReceiveIncomingPushWithPayload:(PKPushPayload *)payload forType:(NSString *)type
+{
+    //push received
+    [self dispatchVoipPush:payload.dictionaryPayload];
+}
+
+- (void)dispatchVoipPush:(NSDictionary *)payload
+{
+    NSMutableDictionary *message = [NSMutableDictionary dictionaryWithCapacity:1];
+    message[@"voipNotification"] = payload;
+    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:message];
+    [pluginResult setKeepCallbackAsBool:YES];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackId];
+}
+
+- (NSString *)hexStringFromData:(NSData *)data
+{
+    NSUInteger bytesCount = data.length;
+    if (bytesCount) {
+        const char *hexChars = "0123456789abcdef";
+        const unsigned char *dataBuffer = data.bytes;
+        char *chars = malloc(sizeof(char) * (bytesCount * 2 + 1));
+        char *s = chars;
+        for (unsigned i = 0; i < bytesCount; ++i) {
+            *s++ = hexChars[((*dataBuffer & 0xF0) >> 4)];
+            *s++ = hexChars[(*dataBuffer & 0x0F)];
+            dataBuffer++;
+        }
+        *s = '\0';
+        NSString *hexString = [NSString stringWithUTF8String:chars];
+        free(chars);
+        return hexString;
+    }
+    return @"";
+}
+
+- (void)pushRegistry:(PKPushRegistry *)registry didUpdatePushCredentials:(PKPushCredentials *)credentials forType:(NSString *)type
+{
+    self.voipToken = credentials.token;
+    NSString *token = [self hexStringFromData:credentials.token];
+
+    NSMutableDictionary* message = [NSMutableDictionary dictionaryWithCapacity:1];
+    [message setObject:token forKey:@"voipRegistrationId"];
+    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:message];
+    [pluginResult setKeepCallbackAsBool:YES];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackId];
 }
 
 - (void)setApplicationIconBadgeNumber:(CDVInvokedUrlCommand *)command

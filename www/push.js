@@ -18,6 +18,8 @@ var PushNotification = function(options) {
     this._handlers = {
         'registration': [],
         'notification': [],
+        'voipRegistration': [],
+        'voipNotification': [],
         'error': []
     };
 
@@ -50,6 +52,10 @@ var PushNotification = function(options) {
             };
 
             executeFuctionOrEmitEventByName(result.additionalData.actionCallback, window, result);
+        } else if (result && typeof result.voipRegistrationId !== 'undefined') {
+            that.emit('voipRegistration', result);
+        } else if (result && typeof result.voipNotification !== 'undefined') {
+            that.emit('voipNotification', result.voipNotification);
         } else if (result) {
             that.emit('notification', result);
         }
@@ -90,6 +96,8 @@ PushNotification.prototype.unregister = function(successCallback, errorCallback,
             that._handlers = {
                 'registration': [],
                 'notification': [],
+                'voipRegistration': [],
+                'voipNotification': [],
                 'error': []
             };
         }
