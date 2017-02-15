@@ -75,7 +75,7 @@
   <platform name="browser">
 	<hook type="after_platform_add" src="hooks/browser/createManifest.js"/>
 	<hook type="after_plugin_install" src="hooks/browser/createManifest.js"/>
-	<hook type="after_plugin_add" src="hooks/browser/createManifest.js"/>
+	<hook type="after_prepare" src="hooks/browser/copyManifest.js"/>
     <js-module src="www/browser/push.js" name="BrowserPush">
       <clobbers target="PushNotification"/>
     </js-module>

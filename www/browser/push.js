@@ -52,20 +52,9 @@ var PushNotification = function(options) {
             serviceWorker = reg;
             reg.pushManager.subscribe({userVisibleOnly: true}).then(function(sub) {
                 subscription = sub;
-                result = { 'registrationId': sub.endpoint.substring(sub.endpoint.lastIndexOf('/') + 1) };
-                that.emit('registration', result);
-
-                // send encryption keys to push server
-                var xmlHttp = new XMLHttpRequest();
-                var xmlURL = (options.browser.pushServiceURL || 'http://push.api.phonegap.com/v1/push') + '/keys';
-                xmlHttp.open('POST', xmlURL, true);
-
-                var formData = new FormData();
-                formData.append('subscription', JSON.stringify(sub));
-
-                xmlHttp.send(formData);
-
-                navigator.serviceWorker.controller.postMessage(result, [channel.port2]);
+                that.emit('registration', {
+                    registrationId: sub
+                });
             }).catch(function(error) {
                 if (navigator.serviceWorker.controller === null) {
                     // When you first register a SW, need a page reload to handle network operations
@@ -73,7 +62,8 @@ var PushNotification = function(options) {
                     return;
                 }
 
-                throw new Error('Error subscribing for Push notifications.');
+                //throw new Error('Error subscribing for Push notifications.');
+				throw error;
             });
         }).catch(function(error) {
             console.log(error);
@@ -113,13 +103,6 @@ PushNotification.prototype.unregister = function(successCallback, errorCallback,
     if (serviceWorker) {
         serviceWorker.unregister().then(function(isSuccess) {
             if (isSuccess) {
-                var deviceID = subscription.endpoint.substring(subscription.endpoint.lastIndexOf('/') + 1);
-                var xmlHttp = new XMLHttpRequest();
-                var xmlURL = (that.options.browser.pushServiceURL || 'http://push.api.phonegap.com/v1/push')
-                    + '/keys/' + deviceID;
-                xmlHttp.open('DELETE', xmlURL, true);
-                xmlHttp.send();
-
                 successCallback();
             } else {
                 errorCallback();

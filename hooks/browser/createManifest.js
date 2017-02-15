@@ -22,6 +22,6 @@ module.exports = function(context) {
 	
 	var manifestContent = fs.readFileSync(path.join(context.opts.plugin.dir, 'src/browser/manifest.json'), 'utf-8');
 	manifestContent = manifestContent.replace("$SENDER_ID", senderIdValue);
-	fs.writeFileSync(path.join(context.opts.projectRoot, 'platforms/browser/www/manifest.json'), manifestContent, 'utf-8');
+	fs.writeFileSync(path.join(context.opts.plugin.dir, 'src/browser/modified-manifest.json'), manifestContent, 'utf-8');
 	console.log("Updated SENDER_ID for browser platform");
 }

@@ -11,10 +11,11 @@ self.addEventListener('push', function(event) {
         image: 'https://avatars1.githubusercontent.com/u/60365?v=3&s=200',
         additionalData: {}
     };
+    console.log(event);
     if (event.data) {
+        console.log(event.data.text());
         obj = event.data.json();
-    }
-
+    }  
     console.log(obj);
 
     // convert to push plugin API
