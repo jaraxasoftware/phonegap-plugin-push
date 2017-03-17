@@ -364,5 +364,3 @@ module.exports = {
 
     PushNotification: PushNotification
 };
-
-});
