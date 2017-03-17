@@ -1,4 +1,4 @@
-cordova.define("phonegap-plugin-push.BrowserPush", function(require, exports, module) { /* global cordova:false */
+/* global cordova:false */
 /* globals window, document, navigator */
 
 /*!
