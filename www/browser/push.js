@@ -1,4 +1,4 @@
-/* global cordova:false */
+cordova.define("phonegap-plugin-push.BrowserPush", function(require, exports, module) { /* global cordova:false */
 /* globals window, document, navigator */
 
 /*!
@@ -14,6 +14,7 @@ var exec = cordova.require('cordova/exec');
  * @return {PushNotification} instance that can be monitored and cancelled.
  */
 var serviceWorker, subscription;
+var notificationCanceled = false;
 var PushNotification = function(options) {
     this._handlers = {
         'registration': [],
@@ -52,9 +53,15 @@ var PushNotification = function(options) {
             serviceWorker = reg;
             reg.pushManager.subscribe({userVisibleOnly: true}).then(function(sub) {
                 subscription = sub;
-                that.emit('registration', {
-                    registrationId: sub
-                });
+                var jsonSub = JSON.parse(JSON.stringify(subscription));
+                var result = {
+                    endpoint: sub.endpoint,
+                    key: jsonSub.keys['p256dh'],
+                    auth: jsonSub.keys['auth']
+                };
+                var registrationId = JSON.stringify(result);
+                result['registrationId'] = registrationId;
+                that.emit('registration', result);
             }).catch(function(error) {
                 if (navigator.serviceWorker.controller === null) {
                     // When you first register a SW, need a page reload to handle network operations
@@ -65,6 +72,17 @@ var PushNotification = function(options) {
                 //throw new Error('Error subscribing for Push notifications.');
 				throw error;
             });
+            var channel = new MessageChannel();
+            var serviceWorker = reg.active;
+            channel.port1.onmessage = function(e) {
+                channel = new MessageChannel();
+                notificationCanceled = false;
+                that.emit('notification', e.data);
+                if (notificationCanceled) {
+                    serviceWorker.postMessage({cmd: 'received', pushId: e.data.pushId}, [channel.port2]);
+                }
+            }
+            serviceWorker.postMessage({cmd: 'init'}, [channel.port2]);
         }).catch(function(error) {
             console.log(error);
             throw new Error('Error registering Service Worker');
@@ -73,6 +91,14 @@ var PushNotification = function(options) {
         throw new Error('Service Workers are not supported on your browser.');
     }
 };
+    
+/**
+ * Cancel showing current notification
+ */
+
+PushNotification.prototype.cancelNotification = function() {
+    notificationCanceled = true;
+}
 
 /**
  * Unregister from push notifications
@@ -338,3 +364,5 @@ module.exports = {
 
     PushNotification: PushNotification
 };
+
+});
