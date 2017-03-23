@@ -15,6 +15,7 @@ var exec = cordova.require('cordova/exec');
  */
 var serviceWorker, subscription;
 var notificationCanceled = false;
+var keepChannelAliveTimeout = null;
 var PushNotification = function(options) {
     this._handlers = {
         'registration': [],
@@ -32,6 +33,10 @@ var PushNotification = function(options) {
 
     // triggered on registration and notification
     var that = this;
+    var windowGuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+        return v.toString(16);
+    });
 
     // Add manifest.json to main HTML file
     var linkElement = document.createElement('link');
@@ -72,17 +77,22 @@ var PushNotification = function(options) {
                 //throw new Error('Error subscribing for Push notifications.');
 				throw error;
             });
-            var channel = new MessageChannel();
             var serviceWorker = reg.active;
-            channel.port1.onmessage = function(e) {
-                channel = new MessageChannel();
-                notificationCanceled = false;
-                that.emit('notification', e.data);
-                if (notificationCanceled) {
-                    serviceWorker.postMessage({cmd: 'received', pushId: e.data.pushId}, [channel.port2]);
-                }
+            if (keepChannelAliveTimeout != null) {
+                window.clearTimeout(keepChannelAliveTimeout);
             }
-            serviceWorker.postMessage({cmd: 'init'}, [channel.port2]);
+            keepChannelAliveTimeout = window.setInterval(function(){
+                var channel = new MessageChannel();
+                serviceWorker.postMessage({cmd: 'init', windowid: windowGuid}, [channel.port2]);
+                channel.port1.onmessage = function(e) {
+                    var channel = new MessageChannel();
+                    notificationCanceled = false;
+                    that.emit('notification', e.data);
+                    if (notificationCanceled) {
+                        serviceWorker.postMessage({cmd: 'received', pushId: e.data.pushId}, [channel.port2]);
+                    }
+                }
+            },5000);
         }).catch(function(error) {
             console.log(error);
             throw new Error('Error registering Service Worker');

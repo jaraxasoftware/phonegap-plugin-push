@@ -1,9 +1,13 @@
-var messageChannel;
+var messageChannel = {};
 var pushId = 0;
 var pendingNotifications = {};
 
 self.addEventListener('install', function(event) {
     self.skipWaiting();
+});
+
+self.addEventListener('activate', function(event) {
+    event.waitUntil(self.clients.claim());
 });
 
 self.addEventListener('push', function(event) {
@@ -56,15 +60,15 @@ self.addEventListener('push', function(event) {
         })
     );
     pendingNotifications[pushData.pushId] = true;
-    if (typeof(messageChannel) != "undefined") {
-        messageChannel.ports[0].postMessage(pushData);
+    for (var windowid in messageChannel) {
+        messageChannel[windowid].ports[0].postMessage(pushData);
     }
 
 });
 
 self.addEventListener('message', function(event) {
     if (event.data.cmd == "init") {
-        messageChannel = event;
+        messageChannel[event.data.windowid] = event;
     } else if (event.data.cmd == "received") {
         delete (pendingNotifications[event.data.pushId]);
     }
