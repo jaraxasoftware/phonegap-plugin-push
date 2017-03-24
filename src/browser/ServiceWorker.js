@@ -35,11 +35,29 @@ self.addEventListener('push', function(event) {
             pushData.image = obj[key];
         } else if (key === 'content_available') {
             pushData['content_available'] = obj[key];
+        } else if (key === 'tag') {
+            pushData.tag = obj[key];
+        } else if (key === 'url') {
+            pushData.url = obj[key];
         } else {
             pushData.additionalData[key] = obj[key];
         }
     }
     pushData.pushId = pushId++;
+    if (typeof(pushData.tag) === "undefined") {
+        pushData.tag = "tag-" + pushData.pushId;
+    }
+    var notificationOptions = {
+        body: pushData.message,
+        icon: pushData.image,
+        tag: pushData.tag,
+        data: pushData
+    };
+
+    // Add when available in browsers
+    /*if (typeof(pushData.sound) !== "undefined") {
+        notificationOptions.sound = pushData.sound;
+    }*/
 
     var delayPromise = new Promise(function(resolve, reject) {
         setTimeout(function() {
@@ -50,20 +68,18 @@ self.addEventListener('push', function(event) {
     event.waitUntil(
         delayPromise.then(function(){
             if (typeof(pendingNotifications[pushData.pushId]) !== "undefined") {
-                self.registration.showNotification(pushData.title, {
-                    body: pushData.message,
-                    icon: pushData.image,
-                    tag: 'simple-push-demo-notification-tag'
-                });
+                self.registration.showNotification(pushData.title, notificationOptions);
                 delete (pendingNotifications[pushData.pushId]);
             }
         })
     );
     pendingNotifications[pushData.pushId] = true;
     for (var windowid in messageChannel) {
-        messageChannel[windowid].ports[0].postMessage(pushData);
+        messageChannel[windowid].ports[0].postMessage({
+            cmd: 'notification',
+            data: pushData
+        });
     }
-
 });
 
 self.addEventListener('message', function(event) {
@@ -72,4 +88,28 @@ self.addEventListener('message', function(event) {
     } else if (event.data.cmd == "received") {
         delete (pendingNotifications[event.data.pushId]);
     }
+});
+
+self.addEventListener('notificationclick', function(event) {
+    event.notification.close();
+    var pushData = event.notification.data;
+
+    for (var windowid in messageChannel) {
+        // Add timeout & cancelation like in notification
+        messageChannel[windowid].ports[0].postMessage({
+            cmd: 'notificationclick',
+            data: pushData
+        });
+    }    
+    event.waitUntil(clients.matchAll({
+        type: "window"
+    }).then(function(clientList) {
+        for (var i = 0; i < clientList.length; i++) {
+            var client = clientList[i];
+            return client.focus();
+        }
+        if (clients.openWindow && pushData.url) {
+            return clients.openWindow(pushData.url);
+        }
+    }));
 });

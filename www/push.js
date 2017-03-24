@@ -18,6 +18,7 @@ var PushNotification = function(options) {
     this._handlers = {
         'registration': [],
         'notification': [],
+        'notificationclick': [],
         'voipRegistration': [],
         'voipNotification': [],
         'error': []
@@ -96,6 +97,7 @@ PushNotification.prototype.unregister = function(successCallback, errorCallback,
             that._handlers = {
                 'registration': [],
                 'notification': [],
+                'notificationclick': [],
                 'voipRegistration': [],
                 'voipNotification': [],
                 'error': []
