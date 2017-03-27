@@ -48,6 +48,8 @@ Attribute | Type | Default | Description
 `android.clearNotifications` | `boolean` | `true` | Optional. If `true` the app clears all pending notifications when it is closed.
 `android.forceShow` | `boolean` | `false` | Optional. Controls the behavior of the notification when app is in foreground. If `true` and app is in foreground, it will show a notification in the notification drawer, the same way as when the app is in background (and `on('notification')` callback will be called *only when the user clicks the notification*). When `false` and app is in foreground, the `on('notification')` callback will be called immediately.
 `android.topics` | `array` | `[]` | Optional. If the array contains one or more strings each string will be used to subscribe to a GcmPubSub topic. Note: you should omit the `/topics/` prefix from each element of the array as the plugin will handle that for you.
+`android.messageKey` | `string` | `message` | Optional. The key to search for text of notification.
+`android.titleKey` | `string` | `'title'` | Optional. The key to search for title of notification.
 
 #### Browser
 
@@ -203,6 +205,7 @@ Parameter | Type | Description
 `data.additionalData` | `Object` | An optional collection of data sent by the 3rd party push service that does not fit in the above properties.
 `data.additionalData.foreground` | `boolean` | Whether the notification was received while the app was in the foreground
 `data.additionalData.coldstart` | `boolean` | Will be `true` if the application is started by clicking on the push notification, `false` if the app is already started.
+`data.additionalData.dismissed` | `boolean` | Is set to `true` if the notification was dismissed by the user
 
 ### Example
 

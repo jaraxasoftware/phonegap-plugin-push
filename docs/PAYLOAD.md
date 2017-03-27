@@ -3,6 +3,7 @@
    - [Background Events](#push-message-arrives-with-app-in-background)
    - [Tap Events](#user-clicks-on-notification-in-notification-center)
 - [Android Behaviour](#android-behaviour)
+  - [Notification vs Data Payloads](#notification-vs-data-payloads)
   - [Localization](#localization)
   - [Images](#images)
   - [Sound](#sound)
@@ -16,6 +17,7 @@
   - [Picture Messages](#picture-messages)
   - [Background Notifications](#background-notifications)
     - [Use of content-available: true](#use-of-content-available-true)
+  - [Caching](#caching)
   - [Huawei and Xiaomi Phones](#huawei-and-xiaomi-phones)
   - [Application force closed](#application-force-closed)
   - [Visibility](#visibility-of-notifications)
@@ -66,6 +68,66 @@ Some ways to handle this *double* event are:
 - include a unique ID in your push so you can check to see if you've already processed this event.
 
 # Android Behaviour
+
+## Notification vs Data Payloads
+
+Notifications behave differently depending on the foreground/background state of the receiving app and the payload you send to the app.
+
+For instance if you send the following payload:
+
+```
+{
+    "notification": {
+        "title": "Test Notification",
+        "body": "This offer expires at 11:30 or whatever",
+        "notId": 10
+    }
+}
+```
+
+When your app is in the foreground any `on('notification')` handlers you have registered will be called. However if your app is in the background the notification will show up in the system tray. Clicking on the notification in the system tray will start the app but your `on('notification')` handler will not be called as messages with only `notification` payloads will not cause the plugins `onMessageReceived` method to be called.
+
+If you send a payload with a mix of `notification` & `data` objects like this:
+
+```
+{
+    "notification": {
+        "title": "Test Notification",
+        "body": "This offer expires at 11:30 or whatever",
+        "notId": 10
+    },
+    "data" : {
+        "surveyID": "ewtawgreg-gragrag-rgarhthgbad"
+    }
+}
+```
+
+When your app is in the foreground any `on('notification')` handlers you have registered will be called. If your app is in the background the notification will show up in the system tray. Clicking on the notification in the system tray will start the app and your `on('notification')` handler will not be called as messages with only `notification` payloads will not cause the plugins `onMessageReceived` method to be called.
+
+My recommended format for your push payload when using this plugin (while it differs from Google's docs) works 100% of the time:
+
+```
+{
+    "data" : {
+        "title": "Test Notification",
+        "body": "This offer expires at 11:30 or whatever",
+        "notId": 10,
+        "surveyID": "ewtawgreg-gragrag-rgarhthgbad"
+    }
+}
+```
+
+When your app is in the foreground any `on('notification')` handlers you have registered will be called. If your app is in the background the notification will show up in the system tray. Clicking on the notification in the system tray will start the app and your `on('notification')` handler will be called and the event received by your `on('notification')` handler will get the following data:
+
+```
+{
+    "message": "This offer expires at 11:30 or whatever",
+    "title": "Test Notification",
+    "additionalData": {
+        "surveyID": "ewtawgreg-gragrag-rgarhthgbad"
+    }
+}
+```
 
 ## Localization
 
@@ -285,6 +347,43 @@ service.send(message, { registrationTokens: [ deviceID ] }, function (err, respo
 Produces the following notification.
 
 ![2015-07-24 02 17 55](https://cloud.githubusercontent.com/assets/353180/8866900/2df0ab06-3190-11e5-9a81-fdb85bb0f5a4.png)
+
+Finally the Material UI guidelines recommend using a circular icon for the large icon if the subject of the image is a person. This JSON sent from GCM:
+
+```javascript
+{
+    "registration_ids": ["my device id"],
+    "data": {
+    	"title": "Large Circular Icon",
+    	"message": "Loaded from URL",
+        "image": "https://pbs.twimg.com/profile_images/837060031895896065/VHIQ4oUf_400x400.jpg",
+        "image-type": "circle"
+    }
+}
+```
+
+Here is an example using node-gcm that sends the above JSON:
+
+```javascript
+var gcm = require('node-gcm');
+// Replace these with your own values.
+var apiKey = "replace with API key";
+var deviceID = "my device id";
+var service = new gcm.Sender(apiKey);
+var message = new gcm.Message();
+message.addData('title', 'Large Circular Icon');
+message.addData('message', 'Loaded from URL');
+message.addData('image', 'https://pbs.twimg.com/profile_images/837060031895896065/VHIQ4oUf_400x400.jpg');
+message.addData('image-type', 'circular');
+service.send(message, { registrationTokens: [ deviceID ] }, function (err, response) {
+	if(err) console.error(err);
+	else 	console.log(response);
+});
+```
+
+Produces the following notification.
+
+![screenshot_20170308-214947](https://cloud.githubusercontent.com/assets/353180/23733917/902a4650-0449-11e7-924e-d45a38030c74.png)
 
 ## Sound
 
@@ -947,7 +1046,8 @@ Instead move `content-available: true` into the `data` object of the payload and
 These phones have a particular quirk that when the app is force closed that you will no longer be able to receive notifications until the app is restarted. In order for you to receive background notifications:
 
 - On your Huawei device go to Settings > Protected apps > check "My App" where.
-- On your Xiaomi makes sure your phone has the "Auto-start" property enabled for your app.
+- On your Xiaomi make sure your phone has the "Auto-start" property enabled for your app.
+- On your Asus make sure your phone has the "Auto-start" property enabled for your app.
 
 ### Application force closed
 
@@ -1009,6 +1109,22 @@ service.send(message, { registrationTokens: [ deviceID ] }, function (err, respo
 	if(err) console.error(err);
 	else 	console.log(response);
 });
+```
+
+### Caching
+
+By default, when a notification arrives and 'content-available' is set to '1', the plugin will try to deliver the data payload even if the app is not running. In that case, the payload is cached and may be delivered when the app is started again. To disable this behavior, you can set a `no-cache` flag in the notification payload. 0: caching enabled (default), 1: caching disabled.
+
+```javascript
+{
+    "registration_ids": ["my device id"],
+    "data": {
+        "title": "Push without cache",
+        "message": "When the app is closed, this notification will not be cached",
+        "content-available": "1",
+        "no-cache": "1"
+    }
+}
 ```
 
 ## Visibility of Notifications
@@ -1117,7 +1233,7 @@ Note: "sound" and "soundname" are equivalent and are considered to be the same b
 
 ## Sound
 
-In order for your notification to play a custom sound you will need to add the files to root of your iOS project. The files must be in the proper format. See the [Local and Remote Notification Programming Guide](https://developer.apple.com/library/ios/documentation/NetworkingInternet/Conceptual/RemoteNotificationsPG/Chapters/IPhoneOSClientImp.html#//apple_ref/doc/uid/TP40008194-CH103-SW6) for more info on proper file formats and how to convert existing sound files.
+In order for your notification to play a custom sound you will need to add the files to root of your iOS project. The files must be in the proper format. See the [Local and Remote Notification Programming Guide](https://developer.apple.com/library/content/documentation/NetworkingInternet/Conceptual/RemoteNotificationsPG/SupportingNotificationsinYourApp.html#//apple_ref/doc/uid/TP40008194-CH4-SW10) for more info on proper file formats and how to convert existing sound files.
 
 Then send the follow JSON from APNS:
 

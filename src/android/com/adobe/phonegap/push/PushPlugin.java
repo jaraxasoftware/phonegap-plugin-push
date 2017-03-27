@@ -70,7 +70,6 @@ public class PushPlugin extends CordovaPlugin implements PushConstants {
 
                         Log.v(LOG_TAG, "execute: senderID=" + senderID);
 
-                        String savedSenderID = sharedPref.getString(SENDER_ID, "");
                         registration_id = InstanceID.getInstance(getApplicationContext()).getToken(senderID, GCM);
 
                         if (!"".equals(registration_id)) {
@@ -118,6 +117,8 @@ public class PushPlugin extends CordovaPlugin implements PushConstants {
                         editor.putBoolean(CLEAR_NOTIFICATIONS, jo.optBoolean(CLEAR_NOTIFICATIONS, true));
                         editor.putBoolean(FORCE_SHOW, jo.optBoolean(FORCE_SHOW, false));
                         editor.putString(SENDER_ID, senderID);
+                        editor.putString(MESSAGE_KEY, jo.optString(MESSAGE_KEY));
+                        editor.putString(TITLE_KEY, jo.optString(TITLE_KEY));
                         editor.commit();
 
                     }
@@ -259,13 +260,14 @@ public class PushPlugin extends CordovaPlugin implements PushConstants {
 
     /*
      * Sends the pushbundle extras to the client application.
-     * If the client application isn't currently active, it is cached for later processing.
+     * If the client application isn't currently active and the no-cache flag is not set, it is cached for later processing.
      */
     public static void sendExtras(Bundle extras) {
         if (extras != null) {
+            String noCache = extras.getString(NO_CACHE);
             if (gWebView != null) {
                 sendEvent(convertBundleToJson(extras));
-            } else {
+            } else if(!"1".equals(noCache)){
                 Log.v(LOG_TAG, "sendExtras: caching extras to send at a later time.");
                 gCachedExtras.add(extras);
             }
@@ -419,6 +421,9 @@ public class PushPlugin extends CordovaPlugin implements PushConstants {
                 }
                 else if (key.equals(FOREGROUND)) {
                     additionalData.put(key, extras.getBoolean(FOREGROUND));
+                }
+                else if (key.equals(DISMISSED)) {
+                    additionalData.put(key, extras.getBoolean(DISMISSED));
                 }
                 else if ( value instanceof String ) {
                     String strValue = (String)value;

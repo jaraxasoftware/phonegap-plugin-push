@@ -1,7 +1,7 @@
 {
   "name": "phonegap-plugin-push",
   "description": "Register and receive push notifications.",
-  "version": "1.9.2",
+  "version": "1.10.0",
   "homepage": "https://github.com/jaraxasoftware/phonegap-plugin-push",
   "repository": {
     "type": "git",
@@ -47,12 +47,12 @@
     }
   },
   "author": "Adobe PhoneGap Team",
-  "license": "APL",
+  "license": "MIT",
   "scripts": {
     "test": "jasmine-node --color spec"
   },
   "devDependencies": {
     "jasmine-node": "1.14.5",
-    "pluginpub": "^0.0.5"
+    "pluginpub": "^0.0.6"
   }
 }

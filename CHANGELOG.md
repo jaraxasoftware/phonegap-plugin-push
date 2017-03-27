@@ -1,5 +1,49 @@
 # Change Log
 
+## [v1.10.0](https://github.com/phonegap/phonegap-plugin-push/tree/v1.10.0) (2016-07-09)
+[Full Changelog](https://github.com/phonegap/phonegap-plugin-push/compare/v1.9.4...v1.10.0)
+
+- 1.10.0 [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/6b9b862da8566c7717dfc79dd6b32d8a7e6774d8)
+- :bookmark: Bumping plugin version to 1.10.0 [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/626e9615fbff6ea225569ab58353ac7f58aef495)
+- :heavy_plus_sign: update pluginpub version [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/c3c8058ffee888447017eb5d8c0f4f30cbcd090f)
+- Issue #1464: Create round bitmap icon for large icon image passed in from local resource or url (#1635) [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/0dd0d468868f0b13c8d840c78dd89fca5920cd32)
+- Receive notification only from SENDER_ID (#1484) [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/a0d51e54aac39b8c58e4c67080f174c0228947c9)
+- Add no-cache flag to payload (#1620) [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/42f8cefbd187c36534e6ab59b6611fb7f15b91f0)
+- Add dismiss key to on notification data (#1621) [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/4259bb3cacfe2561ed44e9f16bd74f8d5ae45ae2)
+- return true for old android versions, since AppOpsManager is available starting at 19 (#1634) [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/945aa2ad6d266e82683e0bee86f53d258f2b31b6)
+- :art: remove reference to unused  String [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/75f2191632a7a51eda7510a172ae6cc9d477acb9)
+- Ability to use custom keys to find message title and text on Android (#1604) [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/fd366296773906c91d5f8dfa3e8ba813c7c71b85)
+- :memo: Fixed URL of apples custom sound documentation (#1600) [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/8c93f8622eb1c453cb0c681158a07deca32bf200)
+- Updating CHANGELOG [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/409020c90edf04e0a37232cff8aadb070d4ccaa9)
+
+## [v1.9.4](https://github.com/phonegap/phonegap-plugin-push/tree/v1.9.4) (2016-07-09)
+[Full Changelog](https://github.com/phonegap/phonegap-plugin-push/compare/v1.9.3...v1.9.4)
+
+- 1.9.4 [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/2241c7431cd60a68d2f35e7b4a5bfd797d5161b6)
+- Bumping plugin version to 1.9.4 [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/ec47932bf8fdf9cd96db076fe56306ab230048d9)
+- Issue #1591: App crashes with the latest updates of Android SDK with plugin v-1.9.2 [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/514c21366ab37001ca323bec58261e023edaefd7)
+- Updating CHANGELOG [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/3a218e4c68ebc1088461c2cfec966e57eaa24089)
+
+## [v1.9.3](https://github.com/phonegap/phonegap-plugin-push/tree/v1.9.3) (2016-07-09)
+[Full Changelog](https://github.com/phonegap/phonegap-plugin-push/compare/v1.9.2...v1.9.3)
+
+- 1.9.3 [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/42723d6609862aa950abce67b2a637736bdd9e99)
+- :bookmark: Bumping plugin version to 1.9.3 [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/8f7b7dc003a2bc5bab7a316b0e2b0cf475c5a449)
+- :wrench: Add valid SPDX license expression [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/4274d0759acd7110ed2592ed1d2ce3bf692711d3)
+- :memo: Issue #1587: v2.0.0-rc2: .on('notification') event not fired when background notification in Android [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/7e90853a09a2c49f29e12eed03977b08b1295387)
+- :arrow_up: Issue #1560: setApplicationIconBadgeNumber not working on Android but firing success function [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/3188a3907f50dcf625b7663ecf74ea9a9209d437)
+- :memo: Issue #1557: push.on('notification') not triggered - Ionic [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/b91e9420fb68c4efc943cc5f8ecbd81274ffcbec)
+- :memo: Issue #1407: Uncaught (in promise): Error: Push plugin not found! [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/adf3eabb8871980d2dead7ecb8185ad0da1d6b46)
+- Corrected merges usage to prevent possible conflicts with other plugins (#1538) [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/00c67cb2c85e97dfe4f7020f28ad4d954458599f)
+- :penguin: android mixpanel pushnotification suport added (#1523) [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/951cb6921a717d847c279ad6896c28772c70103f)
+- :memo: Making string replacement clearer [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/abdb656315bd4457c7ae43aaa52e2357df85d139)
+- :bug::penguin::memo: Issue #1433: Cordova Push V5 register () crashes App when initialized with topicList [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/1d5723c81ad7a1e9d76fdce22161e8e8aa8da262)
+- :bug::penguin: Issue #1421: Notification delay caused by icon bitmap timeout [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/fb4b533f2b31daebc7ed57c16228458def3d2af9)
+- :memo: Issue #1442: CocoaPods support vs requirement [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/5912b1ea911fbe3b45a3a47ed005b7048a487ba6)
+- make google_app_id non translatable string (#1485) [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/d9890fa52ecdb41b344f06f1dd081d05ea784bea)
+- :penguin::bug: Issue #1474: Android: force-start starts the app in Foreground instead of Background [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/2bb5f53a8478353ed1f5f97756adff336fb9a710)
+- Updating CHANGELOG [view commit](http://github.com/phonegap/phonegap-plugin-push/commit/e02ff6703a53cb18e53060e2d7f6f64ebc8588b6)
+
 ## [v1.9.2](https://github.com/phonegap/phonegap-plugin-push/tree/v1.9.2) (2016-07-09)
 [Full Changelog](https://github.com/phonegap/phonegap-plugin-push/compare/v1.9.1...v1.9.2)
 
