@@ -73,7 +73,9 @@ self.addEventListener('push', function(event) {
             }
         })
     );
-    pendingNotifications[pushData.pushId] = true;
+    if (!pushData['content_available']) {
+        pendingNotifications[pushData.pushId] = true;
+    }
     for (var windowid in messageChannel) {
         messageChannel[windowid].ports[0].postMessage({
             cmd: 'notification',

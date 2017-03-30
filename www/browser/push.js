@@ -115,7 +115,7 @@ var PushNotification = function(options) {
                         var cmd = e.data.cmd;
                         var data = e.data.data;
                         if (cmd == 'notification') {
-                            if (typeof(data.sound) !== "undefined") {
+                            if (typeof(data.sound) !== "undefined" && !data["content_available"]) {
                                 try {
                                     var audio = new Audio(data.sound);
                                     audio.play();
