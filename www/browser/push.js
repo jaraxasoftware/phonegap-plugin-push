@@ -108,7 +108,6 @@ var PushNotification = function(options) {
                     window.clearTimeout(keepChannelAliveTimeout);
                 }
                 keepChannelAliveTimeout = window.setInterval(function(){
-                    console.log("SW: Interval");
                     var channel = new MessageChannel();
                     serviceWorker.postMessage({cmd: 'init', windowid: windowGuid}, [channel.port2]);
                     channel.port1.onmessage = function(e) {
