@@ -1,9 +1,10 @@
 var messageChannel = {};
 var pushId = 0;
 var pendingNotifications = {};
+var clearSilentNotificationTimeout = null;
 
 self.addEventListener('install', function(event) {
-    self.skipWaiting();
+    event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', function(event) {
@@ -18,7 +19,11 @@ self.addEventListener('push', function(event) {
         additionalData: {}
     };
     if (event.data) {
-        obj = event.data.json();
+        try {
+            obj = event.data.json();
+        } catch (e) {
+            console.error(e);
+        }
     }  
 
     // convert to push plugin API
@@ -44,7 +49,9 @@ self.addEventListener('push', function(event) {
         }
     }
     pushData.pushId = pushId++;
-    if (typeof(pushData.tag) === "undefined") {
+    if (pushData['content_available']) {
+        pushData.tag = "silent---notification";
+    } else if (typeof(pushData.tag) === "undefined") {
         pushData.tag = "tag-" + pushData.pushId;
     }
     var notificationOptions = {
@@ -60,22 +67,64 @@ self.addEventListener('push', function(event) {
     }*/
 
     var delayPromise = new Promise(function(resolve, reject) {
-        setTimeout(function() {
-            resolve();
-        },200);
+        clients.matchAll({
+            type: "window"
+        }).then(function(clientList) {
+            var isVisible = false;
+            for (var i = 0; i < clientList.length; i++) {
+                var client = clientList[i];
+                if (client.visibilityState == "visible") {
+                    isVisible = true;
+                }
+            }
+            if (!isVisible) {
+                setTimeout(function() {
+                    if (typeof(pendingNotifications[pushData.pushId]) !== "undefined") {
+                        self.registration.showNotification(pushData.title, notificationOptions).then(function() {
+                            delete (pendingNotifications[pushData.pushId]);
+                            resolve(true);
+                        });
+                    } else {
+                        self.registration.showNotification(pushData.title, notificationOptions).then(function() {
+                            var times = 0;
+                            if (clearSilentNotificationTimeout != null) {
+                                clearTimeout(clearSilentNotificationTimeout);
+                                clearSilentNotificationTimeout = null;
+                            }
+                            clearSilentNotificationTimeout = setTimeout(function() {
+                                self.registration.getNotifications({tag: pushData.tag}).then(function(notifications) {
+                                    for (var i = 0; i < notifications.length; i++) {
+                                        var notification = notifications[i];
+                                        if (notification.tag == pushData.tag || !notification.tag) {
+                                            notification.close();
+                                            clearSilentNotificationTimeout = null;
+                                        }
+                                    }
+                                });
+                            }, 100);
+                            resolve(false);
+                        });
+                    }
+                },200);
+            } else {
+                setTimeout(function() {
+                    if (typeof(pendingNotifications[pushData.pushId]) !== "undefined") {
+                        self.registration.showNotification(pushData.title, notificationOptions).then(function() {
+                            delete (pendingNotifications[pushData.pushId]);
+                            resolve(true);
+                        });
+                    } else {
+                        resolve(false);
+                    }
+                },200);
+            }
+        });
     });
 
-    event.waitUntil(
-        delayPromise.then(function(){
-            if (typeof(pendingNotifications[pushData.pushId]) !== "undefined") {
-                self.registration.showNotification(pushData.title, notificationOptions);
-                delete (pendingNotifications[pushData.pushId]);
-            }
-        })
-    );
     if (!pushData['content_available']) {
         pendingNotifications[pushData.pushId] = true;
     }
+    event.waitUntil(delayPromise);
     for (var windowid in messageChannel) {
         messageChannel[windowid].ports[0].postMessage({
             cmd: 'notification',
@@ -97,12 +146,11 @@ self.addEventListener('notificationclick', function(event) {
     var pushData = event.notification.data;
 
     for (var windowid in messageChannel) {
-        // Add timeout & cancelation like in notification
         messageChannel[windowid].ports[0].postMessage({
             cmd: 'notificationclick',
             data: pushData
         });
-    }    
+    }
     event.waitUntil(clients.matchAll({
         type: "window"
     }).then(function(clientList) {
