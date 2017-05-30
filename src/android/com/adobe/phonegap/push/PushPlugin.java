@@ -404,7 +404,7 @@ public class PushPlugin extends CordovaPlugin implements PushConstants {
 
             // Add any keys that need to be in top level json to this set
             HashSet<String> jsonKeySet = new HashSet();
-            Collections.addAll(jsonKeySet, TITLE,MESSAGE,COUNT,SOUND,IMAGE);
+            Collections.addAll(jsonKeySet, TITLE,MESSAGE,COUNT,SOUND,IMAGE,NOTIFICATION_CLICK);
 
             Iterator<String> it = extras.keySet().iterator();
             while (it.hasNext()) {

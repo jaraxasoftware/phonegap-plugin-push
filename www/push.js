@@ -57,6 +57,9 @@ var PushNotification = function(options) {
             that.emit('voipRegistration', result);
         } else if (result && typeof result.voipNotification !== 'undefined') {
             that.emit('voipNotification', result.voipNotification);
+        } else if (result && typeof result.notificationClick !== 'undefined') {
+            delete result.notificationClick;
+            that.emit('notificationclick', result);
         } else if (result) {
             that.emit('notification', result);
         }
