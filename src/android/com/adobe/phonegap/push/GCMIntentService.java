@@ -95,7 +95,10 @@ public class GCMIntentService extends GcmListenerService implements PushConstant
                 extras.putBoolean(FOREGROUND, true);
                 extras.putBoolean(COLDSTART, false);
 
-                showNotificationIfPossible(applicationContext, extras);
+                if (!showNotificationIfPossible(applicationContext, extras)) {
+                    extras.putString(NO_CACHE, "1");
+                    PushPlugin.sendExtras(extras);
+                }
             }
             // if we are not in the foreground always send notification if the data has at least a message or title
             else {
@@ -103,7 +106,10 @@ public class GCMIntentService extends GcmListenerService implements PushConstant
                 extras.putBoolean(FOREGROUND, false);
                 extras.putBoolean(COLDSTART, PushPlugin.isActive());
 
-                showNotificationIfPossible(applicationContext, extras);
+                if (!showNotificationIfPossible(applicationContext, extras)) {
+                    extras.putString(NO_CACHE, "1");
+                    PushPlugin.sendExtras(extras);
+                }
             }
         }
     }
@@ -279,7 +285,7 @@ public class GCMIntentService extends GcmListenerService implements PushConstant
         return count;
     }
 
-    private void showNotificationIfPossible (Context context, Bundle extras) {
+    private boolean showNotificationIfPossible (Context context, Bundle extras) {
 
         // Send a notification if there is a message or title, otherwise just send data
         String message = extras.getString(MESSAGE);
@@ -317,11 +323,14 @@ public class GCMIntentService extends GcmListenerService implements PushConstant
 			intent.putExtra(START_IN_BACKGROUND, true);
             intent.putExtra(FOREGROUND, false);
             startActivity(intent);
+            return true;
 		} else if ("1".equals(contentAvailable)) {
             Log.d(LOG_TAG, "app is not running and content available true");
             Log.d(LOG_TAG, "send notification event");
             PushPlugin.sendExtras(extras);
+            return true;
         }
+        return false;
     }
 
     public void createNotification(Context context, Bundle extras) {
