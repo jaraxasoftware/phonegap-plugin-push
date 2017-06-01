@@ -12,6 +12,7 @@
 
 static char launchNotificationKey;
 static char coldstartKey;
+static char systemBackgroundKey;
 
 @implementation AppDelegate (notification)
 
@@ -61,6 +62,14 @@ static char coldstartKey;
                                             selector:@selector(pushPluginOnApplicationDidBecomeActive:)
                                                 name:UIApplicationDidBecomeActiveNotification
                                               object:nil];
+    [[NSNotificationCenter defaultCenter]addObserver:self
+                                            selector:@selector(pushPluginOnApplicationWillResignActive:)
+                                                name:UIApplicationWillResignActiveNotification
+                                              object:nil];
+    [[NSNotificationCenter defaultCenter]addObserver:self
+                                            selector:@selector(pushPluginOnApplicationDidEnterBackground:)
+                                                name:UIApplicationDidEnterBackgroundNotification
+                                              object:nil];
 
     // This actually calls the original init method over in AppDelegate. Equivilent to calling super
     // on an overrided method, this is not recursive, although it appears that way. neat huh?
@@ -74,6 +83,7 @@ static char coldstartKey;
     NSLog(@"createNotificationChecker");
     if (notification)
     {
+        self.systemBackground = [NSNumber numberWithBool:NO];
         NSDictionary *launchOptions = [notification userInfo];
         if (launchOptions) {
             NSLog(@"coldstart");
@@ -195,13 +205,22 @@ static char coldstartKey;
     }
 
     if (self.launchNotification) {
-        pushHandler.isInline = NO;
+        pushHandler.isInline = [self.systemBackground boolValue];
         pushHandler.coldstart = [self.coldstart boolValue];
         pushHandler.notificationMessage = self.launchNotification;
         self.launchNotification = nil;
         self.coldstart = [NSNumber numberWithBool:NO];
         [pushHandler performSelectorOnMainThread:@selector(notificationReceived) withObject:pushHandler waitUntilDone:NO];
     }
+    self.systemBackground = [NSNumber numberWithBool:NO];
+}
+
+- (void)pushPluginOnApplicationWillResignActive:(NSNotification *)notification {
+    self.systemBackground = [NSNumber numberWithBool:YES];
+}
+
+- (void)pushPluginOnApplicationDidEnterBackground:(NSNotification *)notification {
+    self.systemBackground = [NSNumber numberWithBool:NO];
 }
 
 
@@ -269,10 +288,21 @@ forRemoteNotification: (NSDictionary *) notification completionHandler: (void (^
     objc_setAssociatedObject(self, &coldstartKey, aNumber, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
+- (NSNumber *)systemBackground
+{
+    return objc_getAssociatedObject(self, &systemBackgroundKey);
+}
+
+- (void)setSystemBackground:(NSNumber *)aNumber
+{
+    objc_setAssociatedObject(self, &systemBackgroundKey, aNumber, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
 - (void)dealloc
 {
     self.launchNotification = nil; // clear the association and release the object
     self.coldstart = nil;
+    self.systemBackground = nil;
 }
 
 @end
