@@ -34,6 +34,7 @@ public class PushPlugin extends CordovaPlugin implements PushConstants {
     private static CallbackContext pushContext;
     private static CordovaWebView gWebView;
     private static List<Bundle> gCachedExtras = Collections.synchronizedList(new ArrayList<Bundle>());
+    private static Bundle gKeptExtras = null;
     private static boolean gForeground = false;
 
     private static String registration_id = "";
@@ -203,6 +204,14 @@ public class PushPlugin extends CordovaPlugin implements PushConstants {
                     callbackContext.success();
                 }
             });
+        } else if (CANCEL_NOTIFICATION.equals(action)) {
+            cordova.getThreadPool().execute(new Runnable() {
+                public void run() {
+                    Log.v(LOG_TAG, "cancelNotification");
+                    cancelNotification();
+                    callbackContext.success();
+                }
+            });
         } else if (SUBSCRIBE.equals(action)){
             // Subscribing for a topic
             cordova.getThreadPool().execute(new Runnable() {
@@ -272,6 +281,18 @@ public class PushPlugin extends CordovaPlugin implements PushConstants {
                 gCachedExtras.add(extras);
             }
         }
+    }
+
+    public static void keepExtras(Bundle extras) {
+        gKeptExtras = extras;
+    }
+
+    public static Bundle getKeptExtras() {
+        return gKeptExtras;
+    }
+
+    public static void cancelNotification() {
+        keepExtras(null);
     }
 
     public static void setApplicationIconBadgeNumber(Context context, int badgeCount) {

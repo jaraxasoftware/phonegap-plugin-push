@@ -149,8 +149,20 @@ var PushNotification = function(options) {
  * Cancel showing current notification
  */
 
-PushNotification.prototype.cancelNotification = function() {
+PushNotification.prototype.cancelNotification = function(successCallback, errorCallback) {
+    if (!errorCallback) { errorCallback = function() {}; }
+
+    if (typeof errorCallback !== 'function')  {
+        console.log('PushNotification.cancelNotification failure: failure parameter not a function');
+        return;
+    }
+
+    if (typeof successCallback !== 'function') {
+        console.log('PushNotification.cancelNotification failure: success callback parameter must be a function');
+        return;
+    }
     notificationCanceled = true;
+	successCallback();
 }
 
 /**

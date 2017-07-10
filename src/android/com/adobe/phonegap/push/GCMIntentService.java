@@ -21,6 +21,8 @@ import android.graphics.Paint;
 import android.graphics.Canvas;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationCompat.WearableExtender;
 import android.support.v4.app.RemoteInput;
@@ -36,6 +38,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.Runnable;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
@@ -47,6 +50,7 @@ import java.util.Random;
 public class GCMIntentService extends GcmListenerService implements PushConstants {
 
     private static final String LOG_TAG = "PushPlugin_GCMIntentService";
+    private static final long FOREGROUND_WAIT_FOR_CANCEL_TIMEOUT = 200;
     private static HashMap<Integer, ArrayList<String>> messageMap = new HashMap<Integer, ArrayList<String>>();
 
     public void setNotification(int notId, String message){
@@ -87,6 +91,8 @@ public class GCMIntentService extends GcmListenerService implements PushConstant
                 Log.d(LOG_TAG, "foreground");
                 extras.putBoolean(FOREGROUND, true);
                 extras.putBoolean(COLDSTART, false);
+                PushPlugin.keepExtras(extras);
+                waitForKeptNotification();
                 PushPlugin.sendExtras(extras);
             }
             // if we are in the foreground and forceShow is `true`, force show the notification if the data has at least a message or title
@@ -112,6 +118,27 @@ public class GCMIntentService extends GcmListenerService implements PushConstant
                 }
             }
         }
+    }
+
+    private void showLastNotificationIfPossible() {
+        Bundle extras = PushPlugin.getKeptExtras();
+        PushPlugin.keepExtras(null);
+        if (extras != null) {
+            showNotificationIfPossible(getApplicationContext(), extras);
+        }
+    }
+
+    private void waitForKeptNotification() {
+        final HandlerThread thread = new HandlerThread("KeptExtrasThread");
+        thread.start();
+        Handler handler = new Handler(thread.getLooper());
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                showLastNotificationIfPossible();
+                thread.quitSafely();
+            }
+        }, FOREGROUND_WAIT_FOR_CANCEL_TIMEOUT);
     }
 
     /*

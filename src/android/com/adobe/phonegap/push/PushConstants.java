@@ -60,6 +60,7 @@ public interface PushConstants {
     public static final String TOPICS = "topics";
     public static final String SET_APPLICATION_ICON_BADGE_NUMBER = "setApplicationIconBadgeNumber";
     public static final String CLEAR_ALL_NOTIFICATIONS = "clearAllNotifications";
+    public static final String CANCEL_NOTIFICATION = "cancelNotification";
     public static final String VISIBILITY = "visibility";
     public static final String INLINE_REPLY = "inlineReply";
     public static final String LOC_KEY = "locKey";

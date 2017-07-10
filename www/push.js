@@ -220,6 +220,26 @@ PushNotification.prototype.clearAllNotifications = function(successCallback, err
 };
 
 /**
+ * Cancel the generation of a visual notification for the last received push
+ */
+
+PushNotification.prototype.cancelNotification = function(successCallback, errorCallback) {
+    if (!errorCallback) { errorCallback = function() {}; }
+
+    if (typeof errorCallback !== 'function')  {
+        console.log('PushNotification.cancelNotification failure: failure parameter not a function');
+        return;
+    }
+
+    if (typeof successCallback !== 'function') {
+        console.log('PushNotification.cancelNotification failure: success callback parameter must be a function');
+        return;
+    }
+
+    exec(successCallback, errorCallback, 'PushNotification', 'cancelNotification', []);
+}
+
+/**
  * Listen for an event.
  *
  * Any event is supported, but the following are built-in:
