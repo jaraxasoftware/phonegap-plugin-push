@@ -92,9 +92,24 @@ var PushNotification = function(options) {
                         window.location.reload();
                         return;
                     }
+                    reg.pushManager.getSubscription().then(function(sub) {
+                        if (sub != null) {
+                            console.log("Already subscribed", sub);
+                            return sub.unsubscribe();
+                        } else {
+                            console.log("Not subscribed");
+                            return true;
+                        }
+                    }).then(function(ok) {
+                        if (ok) {
+                            installServiceWorker(retry + 1);
+                        } else {
+                            throw error;
+                        }
+                    });
 
                     //throw new Error('Error subscribing for Push notifications.');
-                    throw error;
+                    //throw error;
                 });
                 var serviceWorker;
                 if (reg.installing) {
