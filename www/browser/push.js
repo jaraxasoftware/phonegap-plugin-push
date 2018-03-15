@@ -48,113 +48,117 @@ var PushNotification = function(options) {
     var MAX_RETRIES = 3;
 
     function installServiceWorker(retry) {
-        if ('serviceWorker' in navigator && 'MessageChannel' in window) {
-            var result;
+        if (retry <= MAX_RETRIES) {
+            if ('serviceWorker' in navigator && 'MessageChannel' in window) {
+                var result;
 
-            navigator.serviceWorker.register('ServiceWorker.js').then(function(reg) {
-                var serviceWorker;
-                if (reg.installing) {
-                    serviceWorker = reg.installing;
-                } else if (reg.waiting) {
-                    serviceWorker = reg.waiting;
-                } else if (reg.active) {
-                    serviceWorker = reg.active;
-                }
-                serviceWorker.addEventListener('statechange', function(event) {
-                    if (event.target.state === "redundant") {
-                        if (retry < MAX_RETRIES) {
-                            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                                for (var i=0; i<registrations.length; i++) {
-                                    registrations[i].unregister();
-                                }
-                                installServiceWorker(retry + 1);
-                            });
-                        }
+                navigator.serviceWorker.register('ServiceWorker.js').then(function(reg) {
+                    var serviceWorker;
+                    if (reg.installing) {
+                        serviceWorker = reg.installing;
+                    } else if (reg.waiting) {
+                        serviceWorker = reg.waiting;
+                    } else if (reg.active) {
+                        serviceWorker = reg.active;
                     }
-                });
-                return navigator.serviceWorker.ready;
-            })
-            .then(function(reg) {
-                reg.pushManager.subscribe({userVisibleOnly: true}).then(function(sub) {
-                    subscription = sub;
-                    var jsonSub = JSON.parse(JSON.stringify(subscription));
-                    var result = {
-                        endpoint: sub.endpoint,
-                        key: jsonSub.keys['p256dh'],
-                        auth: jsonSub.keys['auth']
-                    };
-                    var registrationId = JSON.stringify(result);
-                    result['registrationId'] = registrationId;
-                    that.emit('registration', result);
-                }).catch(function(error) {
-                    if (navigator.serviceWorker.controller === null) {
-                        // When you first register a SW, need a page reload to handle network operations
-                        window.location.reload();
-                        return;
-                    }
-                    reg.pushManager.getSubscription().then(function(sub) {
-                        if (sub != null) {
-                            console.log("Already subscribed", sub);
-                            return sub.unsubscribe();
-                        } else {
-                            console.log("Not subscribed");
-                            return true;
-                        }
-                    }).then(function(ok) {
-                        if (ok) {
-                            installServiceWorker(retry + 1);
-                        } else {
-                            throw error;
+                    serviceWorker.addEventListener('statechange', function(event) {
+                        if (event.target.state === "redundant") {
+                            if (retry < MAX_RETRIES) {
+                                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                                    for (var i=0; i<registrations.length; i++) {
+                                        registrations[i].unregister();
+                                    }
+                                    installServiceWorker(retry + 1);
+                                });
+                            }
                         }
                     });
-
-                    //throw new Error('Error subscribing for Push notifications.');
-                    //throw error;
-                });
-                var serviceWorker;
-                if (reg.installing) {
-                    serviceWorker = reg.installing;
-                } else if (reg.waiting) {
-                    serviceWorker = reg.waiting;
-                } else if (reg.active) {
-                    serviceWorker = reg.active;
-                }
-                if (keepChannelAliveTimeout != null) {
-                    window.clearTimeout(keepChannelAliveTimeout);
-                }
-                keepChannelAliveTimeout = window.setInterval(function(){
-                    var channel = new MessageChannel();
-                    serviceWorker.postMessage({cmd: 'init', windowid: windowGuid}, [channel.port2]);
-                    channel.port1.onmessage = function(e) {
-                        var cmd = e.data.cmd;
-                        var data = e.data.data;
-                        if (cmd == 'notification') {
-                            if (typeof(data.sound) !== "undefined" && !data["content_available"]) {
-                                try {
-                                    var audio = new Audio(data.sound);
-                                    audio.play();
-                                } catch (e) {
-                                    console.error(e);
-                                }
-                            }
-                            var channel = new MessageChannel();
-                            notificationCanceled = false;
-                            that.emit('notification', data);
-                            if (notificationCanceled) {
-                                serviceWorker.postMessage({cmd: 'received', pushId: data.pushId}, [channel.port2]);
-                            }
-                        } else if (cmd == 'notificationclick') {
-                            that.emit('notificationclick', data);
+                    return navigator.serviceWorker.ready;
+                })
+                .then(function(reg) {
+                    reg.pushManager.subscribe({userVisibleOnly: true}).then(function(sub) {
+                        subscription = sub;
+                        var jsonSub = JSON.parse(JSON.stringify(subscription));
+                        var result = {
+                            endpoint: sub.endpoint,
+                            key: jsonSub.keys['p256dh'],
+                            auth: jsonSub.keys['auth']
+                        };
+                        var registrationId = JSON.stringify(result);
+                        result['registrationId'] = registrationId;
+                        that.emit('registration', result);
+                    }).catch(function(error) {
+                        if (navigator.serviceWorker.controller === null) {
+                            // When you first register a SW, need a page reload to handle network operations
+                            window.location.reload();
+                            return;
                         }
+                        reg.pushManager.getSubscription().then(function(sub) {
+                            if (sub != null) {
+                                console.log("Already subscribed", sub);
+                                return sub.unsubscribe();
+                            } else {
+                                console.log("Not subscribed");
+                                return true;
+                            }
+                        }).then(function(ok) {
+                            if (ok) {
+                                installServiceWorker(retry + 1);
+                            } else {
+                                throw error;
+                            }
+                        });
+
+                        //throw new Error('Error subscribing for Push notifications.');
+                        //throw error;
+                    });
+                    var serviceWorker;
+                    if (reg.installing) {
+                        serviceWorker = reg.installing;
+                    } else if (reg.waiting) {
+                        serviceWorker = reg.waiting;
+                    } else if (reg.active) {
+                        serviceWorker = reg.active;
                     }
-                },5000);
-            }).catch(function(error) {
-                console.log(error);
-                throw new Error('Error registering Service Worker');
-            });
+                    if (keepChannelAliveTimeout != null) {
+                        window.clearTimeout(keepChannelAliveTimeout);
+                    }
+                    keepChannelAliveTimeout = window.setInterval(function(){
+                        var channel = new MessageChannel();
+                        serviceWorker.postMessage({cmd: 'init', windowid: windowGuid}, [channel.port2]);
+                        channel.port1.onmessage = function(e) {
+                            var cmd = e.data.cmd;
+                            var data = e.data.data;
+                            if (cmd == 'notification') {
+                                if (typeof(data.sound) !== "undefined" && !data["content_available"]) {
+                                    try {
+                                        var audio = new Audio(data.sound);
+                                        audio.play();
+                                    } catch (e) {
+                                        console.error(e);
+                                    }
+                                }
+                                var channel = new MessageChannel();
+                                notificationCanceled = false;
+                                that.emit('notification', data);
+                                if (notificationCanceled) {
+                                    serviceWorker.postMessage({cmd: 'received', pushId: data.pushId}, [channel.port2]);
+                                }
+                            } else if (cmd == 'notificationclick') {
+                                that.emit('notificationclick', data);
+                            }
+                        }
+                    },5000);
+                }).catch(function(error) {
+                    console.log(error);
+                    throw new Error('Error registering Service Worker');
+                });
+            } else {
+                throw new Error('Service Workers are not supported on your browser.');
+            }        
         } else {
-            throw new Error('Service Workers are not supported on your browser.');
-        }        
+            throw new Error('Service Worker cannot be installed. Maybe using private navigation mode.');
+        }
     }
 
     installServiceWorker(1);
