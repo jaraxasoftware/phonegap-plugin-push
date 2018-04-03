@@ -319,6 +319,7 @@ public class GCMIntentService extends GcmListenerService implements PushConstant
         String title = extras.getString(TITLE);
         String contentAvailable = extras.getString(CONTENT_AVAILABLE);
         String forceStart = extras.getString(FORCE_START);
+        String startInBackground = extras.getString(START_IN_BACKGROUND);
         int badgeCount = extractBadgeCount(extras);
         if (badgeCount >= 0) {
             Log.d(LOG_TAG, "count =[" + badgeCount + "]");
@@ -347,8 +348,8 @@ public class GCMIntentService extends GcmListenerService implements PushConstant
 			Intent intent = new Intent(this, PushHandlerActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             intent.putExtra(PUSH_BUNDLE, extras);
-			intent.putExtra(START_IN_BACKGROUND, true);
-            intent.putExtra(FOREGROUND, false);
+			intent.putExtra(START_IN_BACKGROUND, !"0".equals(startInBackground));
+            intent.putExtra(FOREGROUND, "0".equals(startInBackground));
             startActivity(intent);
             return true;
 		} else if ("1".equals(contentAvailable)) {
