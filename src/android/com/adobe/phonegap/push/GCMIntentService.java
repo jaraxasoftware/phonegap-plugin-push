@@ -8,6 +8,7 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
@@ -343,7 +344,7 @@ public class GCMIntentService extends GcmListenerService implements PushConstant
             createNotification(context, extras);
         }
 
-		if(!PushPlugin.isActive() && "1".equals(forceStart)){
+		if(!PushPlugin.isActive() && "1".equals(forceStart)) {
             Log.d(LOG_TAG, "app is not running but we should start it and put in background");
 			Intent intent = new Intent(this, PushHandlerActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -357,6 +358,13 @@ public class GCMIntentService extends GcmListenerService implements PushConstant
             Log.d(LOG_TAG, "send notification event");
             PushPlugin.sendExtras(extras);
             return true;
+        } else if (PushPlugin.isActive() && "1".equals(forceStart)) {
+            Log.d(LOG_TAG, "app is running but we should put it in foreground");
+            PackageManager pm = getPackageManager();
+            Intent launchIntent = pm.getLaunchIntentForPackage(getApplicationContext().getPackageName());
+            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+            startActivity(launchIntent);
         }
         return false;
     }
