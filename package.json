@@ -1,7 +1,8 @@
 {
   "name": "phonegap-plugin-push",
   "description": "Register and receive push notifications.",
-  "version": "1.10.0",
+  "types": "./types/index.d.ts",
+  "version": "1.10.1",
   "homepage": "https://github.com/jaraxasoftware/phonegap-plugin-push",
   "repository": {
     "type": "git",
