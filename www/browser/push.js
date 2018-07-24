@@ -31,6 +31,7 @@ var PushNotification = function(options) {
 
     // store the options to this object instance
     this.options = options;
+	this.browserOptions = this.options.browser || {}
 
     // triggered on registration and notification
     var that = this;
@@ -42,7 +43,11 @@ var PushNotification = function(options) {
     // Add manifest.json to main HTML file
     var linkElement = document.createElement('link');
     linkElement.rel = 'manifest';
-    linkElement.href = 'manifest.json';
+	if (this.browserOptions.manifestUrl) {
+		linkElement.href = this.browserOptions.manifestUrl;
+	} else {
+		linkElement.href = 'manifest.json';
+	}
     document.getElementsByTagName('head')[0].appendChild(linkElement);
 
     var MAX_RETRIES = 3;
