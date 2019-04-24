@@ -31,7 +31,13 @@ var PushNotification = function(options) {
 
     // store the options to this object instance
     this.options = options;
+    
+	// subscription options
+    var subOptions = {userVisibleOnly: true};
 	this.browserOptions = this.options.browser || {}
+    if (this.browserOptions.applicationServerKey) {
+      subOptions.applicationServerKey = urlBase64ToUint8Array(this.browserOptions.applicationServerKey);
+    }	
 
     // triggered on registration and notification
     var that = this;
@@ -81,7 +87,7 @@ var PushNotification = function(options) {
                     return navigator.serviceWorker.ready;
                 })
                 .then(function(reg) {
-                    reg.pushManager.subscribe({userVisibleOnly: true}).then(function(sub) {
+                    reg.pushManager.subscribe(subOptions).then(function(sub) {
                         subscription = sub;
                         var jsonSub = JSON.parse(JSON.stringify(subscription));
                         var result = {
@@ -421,6 +427,28 @@ PushNotification.prototype.finish = function(successCallback, errorCallback, id)
  * Push Notification Plugin.
  */
 
+/**
+ * Converts the server key to an Uint8Array
+ *
+ * @param base64String
+ *
+ * @returns {Uint8Array}
+ */
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (var i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+ 
 module.exports = {
     /**
      * Register for Push Notifications.
@@ -437,7 +465,10 @@ module.exports = {
     },
 
     hasPermission: function(successCallback, errorCallback) {
-        successCallback(true);
+        const granted = Notification && Notification.permission === 'granted';
+        successCallback({
+            isEnabled: granted
+        });
     },
 
     unregister: function(successCallback, errorCallback, options) {

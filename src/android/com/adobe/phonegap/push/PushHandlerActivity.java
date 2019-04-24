@@ -11,7 +11,7 @@ import android.support.v4.app.RemoteInput;
 
 
 public class PushHandlerActivity extends Activity implements PushConstants {
-    private static String LOG_TAG = "PushPlugin_PushHandlerActivity";
+    private static String LOG_TAG = "Push_HandlerActivity";
 
     /*
      * this activity will be started if the user touches a notification that we own.
@@ -21,7 +21,7 @@ public class PushHandlerActivity extends Activity implements PushConstants {
      */
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        GCMIntentService gcm = new GCMIntentService();
+        FCMService gcm = new FCMService();
 
         Intent intent = getIntent();
 
@@ -39,7 +39,7 @@ public class PushHandlerActivity extends Activity implements PushConstants {
 
         if(!startOnBackground){
             NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-            notificationManager.cancel(GCMIntentService.getAppName(this), notId);
+            notificationManager.cancel(FCMService.getAppName(this), notId);
         }
 
         boolean isPushPluginActive = PushPlugin.isActive();
