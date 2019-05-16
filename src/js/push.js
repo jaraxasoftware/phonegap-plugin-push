@@ -55,7 +55,30 @@ class PushNotification {
       exec(success, fail, 'PushNotification', 'init', [options]);
     }, 10);
   }
+    
+  /**
+   * Cancel showing current notification
+   */
 
+  cancelNotification(successCallback = () => {}, errorCallback = () => {}) {
+    if (typeof errorCallback !== 'function') {
+      console.log(
+        'PushNotification.cancelNotification failure: failure parameter not a function'
+      );
+      return;
+    }
+
+    if (typeof successCallback !== 'function') {
+      console.log(
+        'PushNotification.cancelNotification failure: success callback ' +
+          'parameter must be a function'
+      );
+      return;
+    }
+
+    exec(successCallback, errorCallback, 'PushNotification', 'cancelNotification', []);
+  }
+  
   /**
    * Unregister from push notifications
    */

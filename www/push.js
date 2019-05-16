@@ -77,13 +77,34 @@ var PushNotification = function () {
       exec(success, fail, 'PushNotification', 'init', [options]);
     }, 10);
   }
+    
+  /**
+   * Cancel showing current notification
+   */
+
+  _createClass(PushNotification, [{
+    key: 'cancelNotification',
+    value: function clearNotification() {
+      var successCallback = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : function () {};
+      var errorCallback = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : function () {};
+
+      if (typeof errorCallback !== 'function') {
+        console.log('PushNotification.cancelNotification failure: failure parameter not a function');
+        return;
+      }
+
+      if (typeof successCallback !== 'function') {
+        console.log('PushNotification.cancelNotification failure: success callback ' + 'parameter must be a function');
+        return;
+      }
+
+      exec(successCallback, errorCallback, 'PushNotification', 'cancelNotification', []);
 
   /**
    * Unregister from push notifications
    */
-
-
-  _createClass(PushNotification, [{
+  
+  }, {
     key: 'unregister',
     value: function unregister(successCallback) {
       var _this2 = this;
