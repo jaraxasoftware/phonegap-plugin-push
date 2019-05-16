@@ -84,7 +84,7 @@ var PushNotification = function () {
 
   _createClass(PushNotification, [{
     key: 'cancelNotification',
-    value: function clearNotification() {
+    value: function cancelNotification() {
       var successCallback = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : function () {};
       var errorCallback = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : function () {};
 
@@ -99,6 +99,7 @@ var PushNotification = function () {
       }
 
       exec(successCallback, errorCallback, 'PushNotification', 'cancelNotification', []);
+	}
 
   /**
    * Unregister from push notifications
