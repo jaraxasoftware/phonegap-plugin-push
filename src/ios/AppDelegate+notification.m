@@ -242,6 +242,7 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
             NSLog(@"coldstart");
             self.launchNotification = response.notification.request.content.userInfo;
             self.coldstart = [NSNumber numberWithBool:YES];
+            completionHandler();
             break;
         }
         case UIApplicationStateBackground:

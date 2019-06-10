@@ -170,6 +170,7 @@
     NSMutableDictionary* options = [command.arguments objectAtIndex:0];
     NSMutableDictionary* iosOptions = [options objectForKey:@"ios"];
     id voipArg = [iosOptions objectForKey:@"voip"];
+    voipArg = @"false";//FIXME: avoid exclusive option between normal and voip push
     if (([voipArg isKindOfClass:[NSString class]] && [voipArg isEqualToString:@"true"]) || [voipArg boolValue]) {
         [self.commandDelegate runInBackground:^ {
             NSLog(@"Push Plugin VoIP set to true");
@@ -677,7 +678,8 @@
 }
 
 
-- (void)pushRegistry:(PKPushRegistry *)registry didUpdatePushCredentials:(PKPushCredentials *)credentials forType:(NSString *)type
+//FIXME
+- (void)new_pushRegistry:(PKPushRegistry *)registry didUpdatePushCredentials:(PKPushCredentials *)credentials forType:(NSString *)type
 {
     if([credentials.token length] == 0) {
         NSLog(@"VoIPPush Plugin register error - No device token:");
@@ -694,7 +696,8 @@
     [self registerWithToken:sToken];
 }
 
-- (void)pushRegistry:(PKPushRegistry *)registry didReceiveIncomingPushWithPayload:(PKPushPayload *)payload forType:(NSString *)type
+//FIXME
+- (void)new_pushRegistry:(PKPushRegistry *)registry didReceiveIncomingPushWithPayload:(PKPushPayload *)payload forType:(NSString *)type
 {
     NSLog(@"VoIP Notification received");
     self.notificationMessage = payload.dictionaryPayload;
