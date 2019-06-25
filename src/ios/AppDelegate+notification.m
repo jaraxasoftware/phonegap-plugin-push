@@ -70,7 +70,16 @@ NSString *const pushPluginApplicationDidBecomeActiveNotification = @"pushPluginA
     [[NSNotificationCenter defaultCenter]addObserver:self
                                             selector:@selector(pushPluginOnApplicationDidEnterBackground:)
                                                 name:UIApplicationDidEnterBackgroundNotification
-                                              object:nil];											  
+                                              object:nil];
+    
+    [[NSNotificationCenter defaultCenter]addObserver:self
+                                            selector:@selector(willPresentNotificationHandler:)
+                                                name:@"WillPresentNotification"
+                                              object:nil];
+    [[NSNotificationCenter defaultCenter]addObserver:self
+                                            selector:@selector(didReceiveNotificationResponseHandler:)
+                                                name:@"DidReceiveNotificationResponse"
+                                              object:nil];
 
     // This actually calls the original init method over in AppDelegate. Equivilent to calling super
     // on an overrided method, this is not recursive, although it appears that way. neat huh?
@@ -207,26 +216,59 @@ NSString *const pushPluginApplicationDidBecomeActiveNotification = @"pushPluginA
        willPresentNotification:(UNNotification *)notification
          withCompletionHandler:(void (^)(UNNotificationPresentationOptions options))completionHandler
 {
-    NSLog( @"NotificationCenter Handle push from foreground" );
-    // custom code to handle push while app is in the foreground
-    PushPlugin *pushHandler = [self getCommandInstance:@"PushNotification"];
-    pushHandler.notificationMessage = notification.request.content.userInfo;
-    pushHandler.isInline = YES;
-    [pushHandler notificationReceived];
-
-    completionHandler(UNNotificationPresentationOptionNone);
+    NSDictionary *data = @{@"notification": notification, @"completionHandler": completionHandler};
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"WillPresentNotification" object:nil userInfo:data];
 }
 
 - (void)userNotificationCenter:(UNUserNotificationCenter *)center
 didReceiveNotificationResponse:(UNNotificationResponse *)response
          withCompletionHandler:(void(^)(void))completionHandler
 {
-    NSLog(@"Push Plugin didReceiveNotificationResponse: actionIdentifier %@, notification: %@", response.actionIdentifier,
-          response.notification.request.content.userInfo);
+    NSDictionary *data = @{@"notificationResponse": response, @"completionHandler": completionHandler};
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"DidReceiveNotificationResponse" object:nil userInfo:data];
+}
+
+- (void)willPresentNotificationHandler:(NSNotification *)notification
+{
+    [self willPresentNotification:[notification.userInfo objectForKey:@"notification"] withCompletionHandler:[notification.userInfo objectForKey:@"completionHandler"]];
+}
+
+- (void)didReceiveNotificationResponseHandler:(NSNotification *)notification
+{
+    [self didReceiveNotificationResponse:[notification.userInfo objectForKey:@"notificationResponse"] withCompletionHandler:[notification.userInfo objectForKey:@"completionHandler"]];
+}
+
+- (void)willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions options))completionHandler
+{
+    NSLog( @"NotificationCenter Handle push from foreground" );
+    UNNotificationRequest* toast = notification.request;
+    
+    if (![toast.trigger isKindOfClass:UNPushNotificationTrigger.class]) {
+        return;
+    }
+
+    // custom code to handle push while app is in the foreground
+    PushPlugin *pushHandler = [self getCommandInstance:@"PushNotification"];
+    pushHandler.notificationMessage = notification.request.content.userInfo;
+    pushHandler.isInline = YES;
+    [pushHandler notificationReceived];
+    
+    completionHandler(UNNotificationPresentationOptionNone);
+}
+
+- (void)didReceiveNotificationResponse:(UNNotificationResponse *)response withCompletionHandler:(void(^)(void))completionHandler
+{
+    NSLog(@"Push Plugin didReceiveNotificationResponse: actionIdentifier %@, notification: %@", response.actionIdentifier, response.notification.request.content.userInfo);
+
+    UNNotificationRequest* toast = response.notification.request;
+    if (![toast.trigger isKindOfClass:UNPushNotificationTrigger.class]) {
+        return;
+    }
+
     NSMutableDictionary *userInfo = [response.notification.request.content.userInfo mutableCopy];
     [userInfo setObject:response.actionIdentifier forKey:@"actionCallback"];
     NSLog(@"Push Plugin userInfo %@", userInfo);
-
+    
     switch ([UIApplication sharedApplication].applicationState) {
         case UIApplicationStateActive:
         {
@@ -252,13 +294,13 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
                     completionHandler();
                 });
             };
-
+            
             PushPlugin *pushHandler = [self getCommandInstance:@"PushNotification"];
-
+            
             if (pushHandler.handlerObj == nil) {
                 pushHandler.handlerObj = [NSMutableDictionary dictionaryWithCapacity:2];
             }
-
+            
             id notId = [userInfo objectForKey:@"notId"];
             if (notId != nil) {
                 NSLog(@"Push Plugin notId %@", notId);
@@ -267,10 +309,10 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
                 NSLog(@"Push Plugin notId handler");
                 [pushHandler.handlerObj setObject:safeHandler forKey:@"handler"];
             }
-
+            
             pushHandler.notificationMessage = userInfo;
             pushHandler.isInline = NO;
-
+            
             [pushHandler performSelectorOnMainThread:@selector(notificationReceived) withObject:pushHandler waitUntilDone:NO];
         }
     }
@@ -312,7 +354,7 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
 {
     self.launchNotification = nil; // clear the association and release the object
     self.coldstart = nil;
-	self.systemBackground = nil;
+    self.systemBackground = nil;
 }
 
 @end
